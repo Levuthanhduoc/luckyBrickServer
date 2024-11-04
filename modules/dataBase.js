@@ -11,8 +11,10 @@ exports.init = async()=>{
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username VARCHAR(50) NOT NULL,
+            password VARCHAR(100) NOT NULL,
             email VARCHAR(100) NOT NULL UNIQUE,
-            role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'pending', 'suppress')),
+            role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'pending', 'suppress')),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );`)
     } catch (error) {

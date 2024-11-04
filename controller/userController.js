@@ -16,8 +16,9 @@ exports.login = [
     body("password").trim().matches(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\W)(?!.* ).{8,16}$/)
     .withMessage("Password must have 8 to 16 character long, 1 number, 1 uppercase, 1 lowercase 1 special character, no space").escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = req.DBPool.connect()
-        const result = await DB.query(`SELECT * FROM users WHERE name = ?;`,[req.body.name]);
+        const DB = await req.DBPool.connect()
+        let result = await DB.query(`SELECT * FROM users WHERE username = $1;`,[req.body.name]);
+        result = result.rows
         let message = [];
         const err = validationResult(req);
         if(!err.isEmpty()){
@@ -30,7 +31,7 @@ exports.login = [
             const rep = bcrypt.compareSync(req.body.password,result[0].password)
             if(rep){
                 const token = jwt.sign({
-                    name:result[0].name,
+                    name:result[0].username,
                     id:result[0].id,
                 },process.env.KEY_PRIVATE,{ 
                     algorithm: 'RS256',
@@ -39,34 +40,40 @@ exports.login = [
                     issuer: `${process.env.BACKEND_HOST}`,
                 })
                 try {
-                    await DB.query("UPDATE users SET status = 'ACTIVE' WHERE id = ?;",result[0].id)
-                    res.json({status:true,token:token});
+                    await DB.query("UPDATE users SET status = 'active' WHERE id = $1;",[result[0].id])
+                    res.cookie('auth', token, { httpOnly: true, expires: new Date(Date.now() +23* 60 * 60 * 1000) });
+                    res.json({status:true,token:token,data:{
+                        name:result[0].username,
+                        role:result[0].role,
+                    }});
                 } catch (error) {
+                    console.log(error)
                     message.push("Oop some error just happen please try again")
                 }
             }else{        
                 message.push('wrong password');
             } 
         }
-        DB.end()
+        DB.release()
         if(message.length != 0){
-            res.json({data:{
+            res.json({
                 status:false,
-                name:req.body.name,
-                password:req.body.password,
-                message:message
-            }})
+                data:{
+                    name:req.body.name,
+                    password:req.body.password,
+                    message:message
+                }})
         }
     })
 ];
 //Logout
 exports.logout = asyncHandler(async (req, res, next) => {
     let message = [];
-    const DB = req.DBPool.connect()
+    const DB = await req.DBPool.connect()
     const standanrdErr = "Oop some error just happen please try again"
     if(req.jwtToken){
         try {
-            await DB.query("UPDATE users SET status = 'DEACTIVE' WHERE name = ?;",req.jwtToken.name)
+            await DB.query("UPDATE users SET status = 'inactive' WHERE username= $1;",[req.jwtToken.name])
             res.json({data:{status:true}});
         } catch (error) {
             message.push(standanrdErr)
@@ -74,7 +81,7 @@ exports.logout = asyncHandler(async (req, res, next) => {
     }else{
         message.push(standanrdErr)
     }
-    DB.end()
+    DB.release()
     if(message.length != 0){
         res.json({data:{
             status:false,
@@ -92,38 +99,57 @@ exports.sign_up_page = asyncHandler(async (req, res, next) => {
 exports.sign_up =[body("name").trim().isLength({min:3}).withMessage("Name must longer than 2 character").escape(),
     body("password").trim().matches(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\W)(?!.* ).{8,16}$/)
     .withMessage("Password must have 8 to 16 character long, 1 number, 1 uppercase, 1 lowercase 1 pecial character, no space").escape(),
-    body("repassword").trim().custom((value,{req})=>{
-        if(value === req.body.password){
-            return true;
-        }
-        return false;
-    }).withMessage("password mismatch"),
+    body("email").trim().matches(/\S+@\S+\.\S+/).withMessage("Invalid email address").escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = req.DBPool.connect()
-        const result = await DB.query(`SELECT * FROM users WHERE name = ?;`, [req.body.name]);
+        const DB = await req.DBPool.connect()
+        
         const err = validationResult(req);
         let message = [];
         if(!err.isEmpty()){
             err.array().forEach((e)=>{
                 message.push(e.msg)
             })
-        }else if(result.length !== 0){
-            message.push("username already exist");
         }else{
-            bcrypt.genSalt(saltRound,(err,salt)=>{
-                bcrypt.hash(req.body.password,salt,async (err,hash)=>{
-                    await DB.query("INSERT INTO users (name,password,salt) VALUES (?,?,?);",[req.body.name,hash,salt]);
-                    res.render("login",{data:{message:["Please login"]}});
-                })
-            })
+            try {
+                let result = await DB.query(`SELECT * FROM users WHERE username = $1;`, [req.body.name]);
+                let checkEmail = await DB.query(`SELECT * FROM users WHERE email = $1;`, [req.body.email]);
+                result = result.rows;
+                checkEmail = checkEmail.rows
+                if(result.length !== 0){
+                    message.push("username already exist");
+                }else if(checkEmail.length !== 0){
+                    message.push("email already exist");
+                }else{
+                    bcrypt.genSalt(saltRound,(err,salt)=>{
+                        bcrypt.hash(req.body.password,salt,async (err,hash)=>{
+                            if(err){
+                                message.push(err.message)
+                            }else{
+                                await DB.query("INSERT INTO users (username,password,email,role) VALUES ($1,$2,$3,$4);",
+                                    [req.body.name,hash,req.body.email,"user"]);
+                                res.json({status:true,
+                                    Data:{
+                                        message:"Please Sign In"
+                                    }
+                                })
+                            }
+                        })
+                    })
+                }
+            } catch (error) {
+                message.push("Oops something happen please try again");
+            }
         }
-        DB.end()
+        DB.release()
         if(message.length != 0){
-            res.render("signup",{data:{
-                name:req.body.name,
-                password:req.body.password,
-                message:message
-            }})
+            res.json({
+                status:false,
+                data:{
+                    name:req.body.name,
+                    password:req.body.password,
+                    message:message
+                }
+            })
         }
     })
 ]
@@ -131,7 +157,7 @@ exports.sign_up =[body("name").trim().isLength({min:3}).withMessage("Name must l
 exports.check_res = asyncHandler(async (req, res, next) => {
     let result = {status:false};
     if(req.jwtToken){
-        if(req.jwtToken.status && req.jwtToken.accStatus == "ACTIVE"){
+        if(req.jwtToken.status && req.jwtToken.accStatus == "active"){
             result ={status:true}
         } 
     } 
@@ -139,11 +165,11 @@ exports.check_res = asyncHandler(async (req, res, next) => {
 });
 
 exports.AdminOnly = asyncHandler(async (req, res, next) => {
-    let result = {status:false,users:{message:["you are not authorize to do this"]}};
+    let result = {status:false,data:{message:["you are not authorize to do this"]}};
     if(req.jwtToken){
         const status = req.jwtToken.accStatus;
         const role = req.jwtToken.role;
-        if(status == "ACTIVE" && role == "ADMIN"){
+        if(status == "active" && role == "ADMIN"){
             next();
             return;
         } 
@@ -152,11 +178,11 @@ exports.AdminOnly = asyncHandler(async (req, res, next) => {
 });
 
 exports.UserAccess = asyncHandler(async (req, res, next) => {
-    let result = {status:false,users:{message:["you are not authorize to do this"]}};
+    let result = {status:false,data:{message:["you are not authorize to do this"]}};
     if(req.jwtToken){
         const status = req.jwtToken.accStatus;
         const role = req.jwtToken.role;
-        if(status == "ACTIVE"){
+        if(status == "active"){
             next();
             return;
         } 
@@ -182,7 +208,7 @@ exports.check = asyncHandler(async (req, res, next) => {
         }
     }
     if(decode){
-        const result = await DB.query("SELECT * FROM users WHERE id = ?;",[decode.id]);
+        const result = await DB.query("SELECT * FROM users WHERE id = $1;",[decode.id]);
         if(result.length == 1){
             data = {
                 status:true,
@@ -197,23 +223,23 @@ exports.check = asyncHandler(async (req, res, next) => {
 });
 
 exports.userAll = asyncHandler(async (req, res, next) => {
-    const DB = req.DBPool.connect()
+    const DB = await req.DBPool.connect()
     const result = await DB.query("SELECT * FROM users;");
-    DB.end()
+    DB.release()
     res.json({users:result})
 });
 
 exports.del = asyncHandler(async (req, res, next) => {
-    const DB = req.DBPool.connect()
+    const DB = await req.DBPool.connect()
     const id  = req.params.id
     try{
-        const result = await DB.query("DELETE FROM users WHERE id = ?;",[id]);
+        const result = await DB.query("DELETE FROM users WHERE id = $1;",[id]);
         res.json({users:"done"})
     }catch(err){
         console.log(err);
         res.json({users:{meassage:["fail to delete"]}})
     }
-    DB.end()
+    DB.release()
 });
 
 exports.update = [
@@ -224,7 +250,7 @@ exports.update = [
     body("status").trim().escape(),
     body("mode").trim().escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = req.DBPool.connect()
+        const DB = await req.DBPool.connect()
         let result = "";
         const err = validationResult(req);
         let message = [];
@@ -238,7 +264,7 @@ exports.update = [
                 })
             }else {
                 if(req.body.id != "new"){
-                    result = await DB.query(`SELECT * FROM users WHERE id = ?;`, [req.body.id]);
+                    result = await DB.query(`SELECT * FROM users WHERE id = $1;`, [req.body.id]);
                     if(result.length != 0){
                         if(result[0].password == req.body.password){
                             userPassword = false;
@@ -248,7 +274,7 @@ exports.update = [
                         message.push("user didnt exists");
                     }
                 }else{
-                    result = await DB.query(`SELECT * FROM users WHERE name = ?;`, [req.body.name]);
+                    result = await DB.query(`SELECT * FROM users WHERE username = $1;`, [req.body.name]);
                     if(result.length != 0){
                         message.push("user already exists");
                     }
@@ -274,10 +300,10 @@ exports.update = [
             let mode = req.body.mode;
             try{
                 if(mode=="update"){
-                    await DB.query("UPDATE users SET name = ? ,password = ? ,salt = ?, role = ?,status = ? WHERE id = ?;",
+                    await DB.query("UPDATE users SET username = $1 ,password = $2 ,salt = $3, role = $4,status = $5 WHERE id = $6;",
                         [req.body.name,userPassword?userPassword:req.body.password,salt,req.body.role,req.body.status,req.body.id]);
                 }else if(mode == "add"){
-                    await DB.query("INSERT INTO users (name,password,salt,role,status) VALUES (?,?,?,?,?);",
+                    await DB.query("INSERT INTO users (name,password,salt,role,status) VALUES ($1,$2,$3,$4,$5);",
                         [req.body.name,userPassword,salt,req.body.role,req.body.status]);
                 }
                 res.json({users:"done"});
@@ -287,6 +313,6 @@ exports.update = [
             }
             
         }
-        DB.end()
+        DB.release()
 })]
 

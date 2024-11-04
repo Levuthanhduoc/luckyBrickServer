@@ -5,7 +5,7 @@ const {formHanler} = require('../modules/updateFormHandler');
 
 router.post('/login', login);
 
-router.post('/signup',check,AdminOnly, sign_up);
+router.post('/signup',sign_up);
 
 router.get("/checking",check,check_res);
 
