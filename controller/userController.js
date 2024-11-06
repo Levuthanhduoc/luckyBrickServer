@@ -74,7 +74,8 @@ exports.logout = asyncHandler(async (req, res, next) => {
     if(req.jwtToken){
         try {
             await DB.query("UPDATE users SET status = 'inactive' WHERE username= $1;",[req.jwtToken.name])
-            res.json({data:{status:true}});
+            res.cookie('auth',"", { httpOnly: true, expires: new Date(Date.now()) });
+            res.json({status:true,data:{message:["Logout success"]}});
         } catch (error) {
             message.push(standanrdErr)
         }
@@ -83,11 +84,12 @@ exports.logout = asyncHandler(async (req, res, next) => {
     }
     DB.release()
     if(message.length != 0){
-        res.json({data:{
+        res.json({
             status:false,
-            name:req.body.name,
-            password:req.body.password,
-            message:message
+            data:{
+                name:req.body.name,
+                password:req.body.password,
+                message:message
         }})
     }
 });
@@ -169,7 +171,7 @@ exports.AdminOnly = asyncHandler(async (req, res, next) => {
     if(req.jwtToken){
         const status = req.jwtToken.accStatus;
         const role = req.jwtToken.role;
-        if(status == "active" && role == "ADMIN"){
+        if(status == "active" && role == "admin"){
             next();
             return;
         } 
@@ -192,6 +194,7 @@ exports.UserAccess = asyncHandler(async (req, res, next) => {
 
 //check cookie
 exports.check = asyncHandler(async (req, res, next) => {
+    const DB = await req.DBPool.connect()
     const token = req.cookies.auth;
     let decode = undefined;
     let data = {
@@ -208,17 +211,19 @@ exports.check = asyncHandler(async (req, res, next) => {
         }
     }
     if(decode){
-        const result = await DB.query("SELECT * FROM users WHERE id = $1;",[decode.id]);
+        let result = await DB.query("SELECT * FROM users WHERE id = $1;",[decode.id]);
+        result =result.rows
         if(result.length == 1){
             data = {
                 status:true,
-                name:result[0].name,
+                name:result[0].username,
                 accStatus: result[0].status,
                 role:result[0].role,   
             }
         }
     }
     req.jwtToken = data;
+    DB.release()
     next()
 });
 
@@ -226,7 +231,7 @@ exports.userAll = asyncHandler(async (req, res, next) => {
     const DB = await req.DBPool.connect()
     const result = await DB.query("SELECT * FROM users;");
     DB.release()
-    res.json({users:result})
+    res.json({users:result.rows})
 });
 
 exports.del = asyncHandler(async (req, res, next) => {
