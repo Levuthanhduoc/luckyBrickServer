@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const {validationResult, body } = require('express-validator');
+const {pool} = require('../modules/dataBase')
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 require('dotenv').config();
@@ -16,7 +17,7 @@ exports.login = [
     body("password").trim().matches(/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\W)(?!.* ).{8,16}$/)
     .withMessage("Password must have 8 to 16 character long, 1 number, 1 uppercase, 1 lowercase 1 special character, no space").escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = await req.DBPool.connect()
+        const DB = await pool.connect()
         let result = await DB.query(`SELECT * FROM users WHERE username = $1;`,[req.body.name]);
         result = result.rows
         let message = [];
@@ -69,7 +70,7 @@ exports.login = [
 //Logout
 exports.logout = asyncHandler(async (req, res, next) => {
     let message = [];
-    const DB = await req.DBPool.connect()
+    const DB = await pool.connect()
     const standanrdErr = "Oop some error just happen please try again"
     if(req.jwtToken){
         try {
@@ -103,7 +104,7 @@ exports.sign_up =[body("name").trim().isLength({min:3}).withMessage("Name must l
     .withMessage("Password must have 8 to 16 character long, 1 number, 1 uppercase, 1 lowercase 1 pecial character, no space").escape(),
     body("email").trim().matches(/\S+@\S+\.\S+/).withMessage("Invalid email address").escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = await req.DBPool.connect()
+        const DB = await pool.connect()
         
         const err = validationResult(req);
         let message = [];
@@ -194,7 +195,7 @@ exports.UserAccess = asyncHandler(async (req, res, next) => {
 
 //check cookie
 exports.check = asyncHandler(async (req, res, next) => {
-    const DB = await req.DBPool.connect()
+    const DB = await pool.connect()
     const token = req.cookies.auth;
     let decode = undefined;
     let data = {
@@ -228,14 +229,14 @@ exports.check = asyncHandler(async (req, res, next) => {
 });
 
 exports.userAll = asyncHandler(async (req, res, next) => {
-    const DB = await req.DBPool.connect()
+    const DB = await pool.connect()
     const result = await DB.query("SELECT * FROM users;");
     DB.release()
     res.json({users:result.rows})
 });
 
 exports.del = asyncHandler(async (req, res, next) => {
-    const DB = await req.DBPool.connect()
+    const DB = await pool.connect()
     const id  = req.params.id
     try{
         const result = await DB.query("DELETE FROM users WHERE id = $1;",[id]);
@@ -255,7 +256,7 @@ exports.update = [
     body("status").trim().escape(),
     body("mode").trim().escape(),
     asyncHandler(async (req, res, next) => {
-        const DB = await req.DBPool.connect()
+        const DB = await pool.connect()
         let result = "";
         const err = validationResult(req);
         let message = [];

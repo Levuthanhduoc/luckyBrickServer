@@ -7,16 +7,12 @@ const cors = require('cors');
 const {init} = require('./modules/dataBase')
 const RateLimit = require("express-rate-limit");
 const helmet = require("helmet");
-const {Pool} = require('pg')
 require('dotenv').config()
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 const queryRouter = require('./routes/query');
 
-const pool = new Pool({
-  connectionString: process.env.DB_STRING,
-})
 //init data base
 init()
 const corsOption ={
@@ -36,10 +32,6 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-app.use(async (req,res,next)=>{
-  req.DBPool = pool
-  next()
-})
 app.use(
   helmet({
     contentSecurityPolicy: {
