@@ -7,11 +7,13 @@ const cors = require('cors');
 const {init} = require('./modules/dataBase')
 const RateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const {AdminOnly,check} = require('./controller/userController');
 require('dotenv').config()
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 const queryRouter = require('./routes/query');
+const legoRouter = require('./routes/lego');
 
 //init data base
 init()
@@ -26,7 +28,6 @@ const limiter = RateLimit({
 
 
 var app = express();
-//connect Database
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -52,10 +53,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use("/storage",express.static(path.join(__dirname, 'uploads')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/query', queryRouter);
+app.use('/legos',legoRouter);
+app.use('/query',check,AdminOnly,queryRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

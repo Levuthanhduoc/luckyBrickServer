@@ -1,13 +1,15 @@
 var express = require('express');
 var router = express.Router();
-const {call,dataTable, dataTableDetail,removeRow,addToDatabase,formValidate,tableInfo} = require("../controller/queryController");
-const {AdminOnly,check} = require('../controller/userController')
+const {call,dataTable, dataTableDetail,removeRow,addToDatabase,formValidate,tableInfo,rowInfo, updateDatabase} = require("../controller/queryController");
+const { formDataHandler } = require('../modules/formDataHandler');
 
-router.get('/dataTable',check,AdminOnly,dataTable);
-router.get('/dataTable/:tableName',check,AdminOnly,dataTableDetail);
-router.post('/',check,AdminOnly,call);
-router.delete('/delete',check,AdminOnly,removeRow);
-router.post('/add',check,AdminOnly,formValidate,addToDatabase)
-router.get('/tableInfo',check,AdminOnly,tableInfo)
+router.get('/dataTable',dataTable);
+router.get('/dataTable/:tableName',dataTableDetail);
+router.post('/',call);
+router.delete('/delete',removeRow);
+router.post('/add',formDataHandler,formValidate,addToDatabase);
+router.put('/update',formDataHandler,formValidate,updateDatabase);
+router.get('/tableInfo',tableInfo);
+router.get('/rowInfo',rowInfo);
 
 module.exports = router;
