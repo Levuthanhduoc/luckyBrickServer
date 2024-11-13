@@ -24,6 +24,10 @@ const corsOption ={
 const limiter = RateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100,
+  keyGenerator: (req) => {
+    // Use the `X-Forwarded-For` header if trust proxy is enabled
+    return req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  },
 });
 
 
