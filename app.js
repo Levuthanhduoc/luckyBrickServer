@@ -18,7 +18,7 @@ const legoRouter = require('./routes/lego');
 //init data base
 init()
 const corsOption ={
-  origin : [`${process.env.FRONTEND_HOST}`,`${process.env.FRONTEND_HOST}/#/admin/news/edit`,"http://localhost:5173"],
+  origin : [`${process.env.FRONTEND}`,`${process.env.FRONTEND}/#/admin/news/edit`,"http://localhost:5173"],
   credentials: true,
 }
 const limiter = RateLimit({
@@ -32,16 +32,17 @@ var app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+app.set('trust proxy', true);
 
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        "default-src": ["'self'", "http://localhost:5173"],
-        "script-src": ["'self'", "'unsafe-eval'","http://localhost:5173"],
-        "worker-src": ["'self'", "http://localhost:5173","blob:", "'unsafe-eval'"],
-        "frame-ancestors": ["'self'", "http://localhost:5173"],
-        "frameSrc": ["'self'", "http://localhost:5173"],
+        "default-src": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
+        "script-src": ["'self'", "'unsafe-eval'","http://localhost:5173",`${process.env.FRONTEND}`],
+        "worker-src": ["'self'", "http://localhost:5173","blob:", "'unsafe-eval'",`${process.env.FRONTEND}`],
+        "frame-ancestors": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
+        "frameSrc": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
       },
     },crossOriginResourcePolicy: { policy: "same-site" }
   })
