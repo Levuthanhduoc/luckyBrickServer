@@ -311,7 +311,6 @@ exports.addToDatabase = asyncHandler(async (req, res, next) => {
 
 exports.updateDatabase = asyncHandler(async (req, res, next) => {
     try{
-        console.log(req.body)
         const DB = await pool.connect()
         const {tableName,id} = req.query
         const validatedColumns = req.body.validatedColumns
@@ -329,7 +328,6 @@ exports.updateDatabase = asyncHandler(async (req, res, next) => {
                 updateQuery = updateQuery + ` WHERE id = $${count + 1}`
             }
         }
-        console.log(columnValue)
         const result = await DB.query(updateQuery,[...columnValue,id]);
         DB.release()
         if(result.rows){

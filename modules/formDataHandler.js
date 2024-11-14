@@ -15,33 +15,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 exports.formDataHandler = [upload.any(),asyncHandler(async (req, res, next) => {
     try{
-        if(req.body){
-            for(let i in req.body){
-                if(i && i != null){
-                    const matchOldFile = i.match(/uploaded.*old/gm)
-                    if(matchOldFile){
-                        const oldFileName = req.body[i]
-                        const newFileCol = i.replace("_old","")
-                        const newFileName = req.body[newFileCol]
-                        if(oldFileName != ""){
-                            if(!newFileName){
-                                req.body[newFileCol] = oldFileName
-                            }else{
-                                const oldFileNameArray = oldFileName.split("&&&")
-                                for(let oldFile of oldFileNameArray){
-                                    try {
-                                        fs.unlinkSync(mydir()+"/"+uploadPath+oldFile);
-                                        console.log('File removed successfully');
-                                    } catch (err) {
-                                        console.error('Error removing file:', err);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         if(req.files){
             req.files.forEach(file => {
                 const matchFile = file.fieldname.match(/uploaded.*zip/gm)
@@ -60,6 +33,33 @@ exports.formDataHandler = [upload.any(),asyncHandler(async (req, res, next) => {
                     req.body[file.fieldname] = req.body[file.fieldname] + "&&&" + file.filename
                 }
             });
+        }
+        if(req.body){
+            for(let i in req.body){
+                if(i && i != null){
+                    const matchOldFile = i.match(/uploaded.*old/gm)
+                    if(matchOldFile){
+                        const oldFileName = req.body[i]
+                        const newFileCol = i.replace("_old","")
+                        const newFileName = req.body[newFileCol]
+                        if(oldFileName){
+                            if(!newFileName){
+                                req.body[newFileCol] = oldFileName
+                            }else{
+                                const oldFileNameArray = oldFileName.split("&&&")
+                                for(let oldFile of oldFileNameArray){
+                                    try {
+                                        fs.unlinkSync(mydir()+"/"+uploadPath+oldFile);
+                                        console.log('File removed successfully');
+                                    } catch (err) {
+                                        console.error('Error removing file:', err);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         next()
     }catch(err){

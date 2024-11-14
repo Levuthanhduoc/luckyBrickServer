@@ -18,7 +18,7 @@ const legoRouter = require('./routes/lego');
 //init data base
 init()
 const corsOption ={
-  origin : [`${process.env.FRONTEND}`,`${process.env.FRONTEND}/#/admin/news/edit`,"http://localhost:5173"],
+  origin : [`${process.env.FRONTEND}`,"http://localhost:5173"],
   credentials: true,
 }
 const limiter = RateLimit({
@@ -46,9 +46,11 @@ app.use(
         "script-src": ["'self'", "'unsafe-eval'","http://localhost:5173",`${process.env.FRONTEND}`],
         "worker-src": ["'self'", "http://localhost:5173","blob:", "'unsafe-eval'",`${process.env.FRONTEND}`],
         "frame-ancestors": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
-        "frameSrc": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
+        "frame-src": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
       },
-    },rossOriginResourcePolicy: { policy: "cross-origin" }
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
   })
 );
 app.use(limiter);
