@@ -48,7 +48,7 @@ app.use(
         "frame-ancestors": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
         "frameSrc": ["'self'", "http://localhost:5173",`${process.env.FRONTEND}`],
       },
-    },crossOriginResourcePolicy: { policy: "same-site" }
+    },rossOriginResourcePolicy: { policy: "cross-origin" }
   })
 );
 app.use(limiter);
