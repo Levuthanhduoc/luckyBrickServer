@@ -16,25 +16,27 @@ const upload = multer({ storage });
 exports.formDataHandler = [upload.any(),asyncHandler(async (req, res, next) => {
     try{
         if(req.files){
+            req.body["awsUpload"] = []
             req.files.forEach(file => {
                 const matchFile = file.fieldname.match(/uploaded.*zip/gm)
                 if(matchFile !=null ){
                     let fname = file.filename.replace(".zip","")
-                    const exactedPath = mydir() +"/"+ uploadPath + fname
-                    const filePath = mydir() + "/" +uploadPath + file.filename
+                    const exactedPath = mydir() +"/"+ uploadPath +"compress/"+ fname
+                    const filePath = mydir() + "/" + uploadPath + file.filename
                     const zip = new AdmZip(filePath);
                     fs.existsSync(exactedPath)?fs.mkdirSync(exactedPath,{recursive:true}):""
                     zip.extractAllTo(exactedPath, true);
-                    fs.unlinkSync(filePath);
-                    req.body[file.fieldname] = fname
+                    req.body[file.fieldname] = "compress/"+ fname
                 }else if(!req.body[file.fieldname]){
                     req.body[file.fieldname] = file.filename
                 }else{
                     req.body[file.fieldname] = req.body[file.fieldname] + "&&&" + file.filename
                 }
+                req.body["awsUpload"].push(file.filename)
             });
         }
         if(req.body){
+            req.body["awsDeleted"] = []
             for(let i in req.body){
                 if(i && i != null){
                     const matchOldFile = i.match(/uploaded.*old/gm)
@@ -49,7 +51,9 @@ exports.formDataHandler = [upload.any(),asyncHandler(async (req, res, next) => {
                                 const oldFileNameArray = oldFileName.split("&&&")
                                 for(let oldFile of oldFileNameArray){
                                     try {
-                                        fs.unlinkSync(mydir()+"/"+uploadPath+oldFile);
+                                        const removePath = mydir()+"/"+uploadPath+oldFile
+                                        fs.unlinkSync(removePath);
+                                        req.body["awsDeleted"].push(removePath)
                                         console.log('File removed successfully');
                                     } catch (err) {
                                         console.error('Error removing file:', err);

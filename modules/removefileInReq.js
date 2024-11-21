@@ -1,6 +1,7 @@
 const { mydir } = require("../mydir");
-const fs = require('fs')
-exports.removeFileInReq = (req)=>{
+const fs = require('fs');
+
+exports.removeFileInReq = (req,option = {aws:false})=>{
     try {
         for(let i in req.body){
             if(i && i != null){

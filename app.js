@@ -14,6 +14,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 const queryRouter = require('./routes/query');
 const legoRouter = require('./routes/lego');
+const { fileManager } = require('./modules/fileManager');
 
 //init data base
 init()
@@ -60,7 +61,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use("/storage",express.static(path.join(__dirname, 'uploads')));
+app.use("/storage",fileManager,express.static(path.join(__dirname, 'uploads')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);

@@ -7,9 +7,12 @@
     "startDev": "nodemon ./bin/www"
   },
   "nodemonConfig": {
-    "ignore": ["./uploads/**"]
+    "ignore": [
+      "./uploads/**"
+    ]
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.693.0",
     "adm-zip": "^0.5.16",
     "bcrypt": "^5.1.1",
     "busboy": "^1.6.0",

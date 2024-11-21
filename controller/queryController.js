@@ -6,8 +6,11 @@ const { translateNameToType } = require("../modules/translateNameToType");
 const { removeFileInReq } = require("../modules/removefileInReq");
 const fs = require('fs')
 const { mydir } = require("../mydir");
+const { clearLeftoverFile } = require("../modules/clearLeftoverFile");
+const { uploadFile, deleteFile } = require("../modules/aws");
 
 const blackList = ["id","created_at"]
+const uploadfolderPath = mydir() + "/uploads"
 
 exports.call = asyncHandler(async (req, res, next) => {
     try{
@@ -159,6 +162,7 @@ exports.removeRow = asyncHandler(async (req, res, next) => {
                                 }else{
                                     fs.unlinkSync(filePath);
                                 }
+                                await deleteFile(filePath)
                                 console.log('File removed successfully');
                             } catch (err) {
                                 console.error('Error removing file:', err);
@@ -276,6 +280,24 @@ exports.formValidate = asyncHandler(async (req, res, next) => {
     } 
 });
 
+const uploadFileToAws = async (req)=>{
+    const files = req.body["awsUpload"]
+    if(files){
+        for(let i of files){
+            await uploadFile(uploadfolderPath + "/" + i)
+        }
+    }
+}
+
+const deleteFileFromAws = async (req)=>{
+    const files = req.body["awsDeleted"]
+    if(files){
+        for(let i of files){
+            await deleteFile(uploadfolderPath + "/" + i)
+        }
+    }
+}
+
 exports.addToDatabase = asyncHandler(async (req, res, next) => {
     try{
         const DB = await pool.connect()
@@ -300,6 +322,10 @@ exports.addToDatabase = asyncHandler(async (req, res, next) => {
         const result = await DB.query(tableQuery,columnValue);
         DB.release()
         if(result.rows){
+            await uploadFileToAws(req)
+            console.log("adasda")
+            clearLeftoverFile(mydir() + "/uploads")
+            console.log("adasdas")
             res.json({status:true,data:{message:[`Add new row to ${tableName}`]}});
         }
     }catch(err){
@@ -314,9 +340,6 @@ exports.updateDatabase = asyncHandler(async (req, res, next) => {
         const DB = await pool.connect()
         const {tableName,id} = req.query
         const validatedColumns = req.body.validatedColumns
-        const queryColumns = validatedColumns.reduce((total,current)=>{
-            return (total==""?total:(total + ", ")) + current
-        },"")
         const columnValue = []
         let count = 0
         let updateQuery = ""
@@ -331,6 +354,9 @@ exports.updateDatabase = asyncHandler(async (req, res, next) => {
         const result = await DB.query(updateQuery,[...columnValue,id]);
         DB.release()
         if(result.rows){
+            await uploadFileToAws(req)
+            await deleteFileFromAws(req)
+            clearLeftoverFile(mydir() + "/uploads")
             res.json({status:true,data:{message:[`Update id: ${id} of ${tableName}`]}});
         }
     }catch(err){
