@@ -323,9 +323,7 @@ exports.addToDatabase = asyncHandler(async (req, res, next) => {
         DB.release()
         if(result.rows){
             await uploadFileToAws(req)
-            console.log("adasda")
             clearLeftoverFile(mydir() + "/uploads")
-            console.log("adasdas")
             res.json({status:true,data:{message:[`Add new row to ${tableName}`]}});
         }
     }catch(err){

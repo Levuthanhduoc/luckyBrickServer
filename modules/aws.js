@@ -39,7 +39,6 @@ const bucketName = "luckybrick"
 // Function to upload a file
 exports.uploadFile = async (filePath) => {
     try {
-        console.log(filePath)
         const isExists = fs.existsSync(filePath)
         if(!isExists){
             throw new Error("file didnt exists");
@@ -71,7 +70,6 @@ exports.downloadFile = async (downloadPath) => {
             const filename = getFileName(downloadPath);
             const newRegex = new RegExp(`^(.*?)(?=${filename.replace(".","\.").replace(".zip","")})`)
             const parentPath = downloadPath.match(newRegex)
-            console.log(filename,parentPath,downloadPath)
             const isFileNameInvalid = filename == null || parentPath == null
             if(isFileNameInvalid){
                 throw new Error("file name err");
@@ -83,11 +81,14 @@ exports.downloadFile = async (downloadPath) => {
                 Bucket: bucketName,
                 Key: filename,
             });
-            console.log("adasda",filePath)
             const response = await s3.send(command);
             const fileStream = fs.createWriteStream(filePath);
             response.Body.pipe(fileStream);
-            
+
+            fileStream.on('error', (err) => {
+                console.log(err)
+                reject(null)
+            });
             fileStream.on('finish', () => {
                 console.log(`File downloaded successfully to ${filePath}`);
                 return resolve(filePath)
@@ -100,7 +101,6 @@ exports.downloadFile = async (downloadPath) => {
 };
 
 exports.deleteFile = async (filePath) => {
-    console.log(filePath)
     try {
         const filename = getFileName(filePath);
         if(filename == null){
