@@ -6,7 +6,7 @@ const accessKey = process.env.AWS_ACCESS_KEY
 const secretKey = process.env.AWS_SECRET_KEY
 const endpoint = process.env.AWS_ENDPOINT
 const s3 = new S3Client({
-    region: 'ap-southeast-1',
+    region: 'ap-southeast-2',
     credentials: {
         accessKeyId: accessKey,
         secretAccessKey: secretKey,
