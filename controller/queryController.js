@@ -246,6 +246,9 @@ exports.formValidate = asyncHandler(async (req, res, next) => {
                                 case "boolean":
                                     validationQuery.push(body(i).trim().not().isEmpty().withMessage(`field ${i} mustnt be empty`).isBoolean({ loose: true }).withMessage("Type must be string").run(req))
                                     break;
+                                case "json":
+                                    validationQuery.push(body(i).trim().not().isEmpty().withMessage(`field ${i} mustnt be empty`).matches(/"text":/).withMessage(`field ${i} mustnt be empty`).run(req))
+                                    break;
                                 default:
                                     validationQuery.push(body(i).trim().not().isEmpty().withMessage(`field ${i} mustnt be empty`).run(req))
                                     break;
@@ -282,9 +285,23 @@ exports.formValidate = asyncHandler(async (req, res, next) => {
 
 const uploadFileToAws = async (req)=>{
     const files = req.body["awsUpload"]
+    const validatedColumns = req.body.validatedColumns
+    let vaildFile = []
+    for(let i of validatedColumns){
+        const isUploaded = i.match("_uploaded")
+        if(isUploaded){
+            const filePath = req.body[i].split("&&&")
+            vaildFile = [...vaildFile,...filePath]
+        }
+    }
     if(files){
         for(let i of files){
-            await uploadFile(uploadfolderPath + "/" + i)
+            const isValid = vaildFile.indexOf(i)
+            if(isValid != -1){
+                await uploadFile(uploadfolderPath + "/" + i)
+            }else{
+                fs.unlinkSync(mydir()+"/uploads/"+ i )
+            }
         }
     }
 }

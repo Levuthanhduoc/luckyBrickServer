@@ -60,6 +60,17 @@ exports.init = async()=>{
                 serial VARCHAR(100),
                 category VARCHAR(100)
             );`)
+        await client.query( `
+            CREATE TABLE IF NOT EXISTS reviews (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                create_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                update_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                comment JSONB,
+                rating NUMERIC CHECK (rating > 0),
+                legos_id NUMERIC CHECK (legos_id >= 0)
+            );`)
     } catch (error) {
         console.error(error)
     }
