@@ -4,6 +4,7 @@ require('dotenv').config()
 
 const accessKey = process.env.AWS_ACCESS_KEY
 const secretKey = process.env.AWS_SECRET_KEY
+const endpoint = process.env.AWS_ENDPOINT
 const s3 = new S3Client({
     region: 'ap-southeast-1',
     credentials: {
@@ -11,7 +12,7 @@ const s3 = new S3Client({
         secretAccessKey: secretKey,
     },
     endpoint:{
-        url: "https://s3.ap-southeast-1.wasabisys.com"
+        url: endpoint
     }
 }
 );
